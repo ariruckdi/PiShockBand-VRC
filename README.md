@@ -6,6 +6,7 @@ Control PiShock via your avatar expressions menu or touch points on your avatar.
 
 # Features
 - Physbone Contact Reciver support
+- Configurable safety settings
 - Value settings (Type, Duration, Intensity) per expressions menu
 - Pretty watch to confirm values set, low poly (about 200 tris)
 - Basic interface as starting point to create your own
