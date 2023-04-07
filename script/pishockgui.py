@@ -9,12 +9,14 @@ CONFIG_DEFAULTS = [["API", "APPNAME", "VRC-OSC"],
                 ["DEBUG", "VERBOSE_OUTPUT", "True"],
                 ["SAFETY", "ONLY_LIMIT_SHOCKS", "True"]]
 
+CONFIG_FILE = os.path.expandvars(r'%APPDATA%\PiShock-OSC\pishock.cfg')
+
 #---CONFIG SETUP AND SETTINGS---
 #TODO Check inputs somehow
 def write_config_value(category, key, value):
     if not config_handler.has_section(category): config_handler.add_section(category)
     config_handler.set(category, key, value)
-    with open("pishock.cfg", "w") as configfile:
+    with open(CONFIG_FILE, "w") as configfile:
         config_handler.write(configfile)
     configfile.close()
 
@@ -23,7 +25,7 @@ def config_setup():
     global shocker, touchpoint_shocker, dispatcher, window
     global config_window, config_handler
 
-    if not 'config_writer' in globals(): config_handler = pishock.ConfigParser()
+    if not 'config_handler' in globals(): config_handler = pishock.ConfigParser()
 
     row_lenght = 30
     row_height = 1
@@ -88,7 +90,7 @@ def config_modify():
     global config_window, config_handler
 
     if not 'config_writer' in globals(): config_handler = pishock.ConfigParser()
-    config_handler.read("pishock.cfg")
+    config_handler.read(CONFIG_FILE)
 
     row_lenght = 30
     row_height = 1
@@ -200,11 +202,13 @@ def gui_loop():
 def main():
     global shocker, touchpoint_shocker, dispatcher, window
 
-    if not os.path.isfile("pishock.cfg"):
+    if not os.path.isfile(CONFIG_FILE):
+        new_config_file = open(CONFIG_FILE, "x")
+        new_config_file.close()
         config_setup()
 
-    shocker = pishock.PiShocker("pishock.cfg", 1, 10, 1)
-    touchpoint_shocker = pishock.PiShocker("pishock.cfg", 1, 10, 1)
+    shocker = pishock.PiShocker(CONFIG_FILE, 1, 10, 1)
+    touchpoint_shocker = pishock.PiShocker(CONFIG_FILE, 1, 10, 1)
 
     if shocker.config.verbose:
         print(shocker.config.config)
