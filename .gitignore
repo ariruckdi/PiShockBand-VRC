@@ -1,3 +1,6 @@
 *.cfg
 python.zip
 python
+installer.ifp
+pishock.cfg
+*.pyc

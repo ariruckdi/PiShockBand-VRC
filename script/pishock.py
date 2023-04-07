@@ -127,11 +127,7 @@ class PiShocker:
         if self.config.verbose and self.fire: print(f"  OSC: Triggered send to {self.target}")
 
 
-def send_shock(type = "menu"):
-    if type == "menu": current_shocker = shocker
-    if type == "touchpoint": current_shocker = touchpoint_shocker
-    if current_shocker == None: raise(ValueError("Type can only be 'menu' or 'touchpoint'"))
-
+def send_shock(current_shocker):
     if current_shocker.config.no_shocks and current_shocker.type == 0:
         print(SHOCKS_DISABLED_WARNING)
         current_shocker.type = 2
@@ -165,13 +161,13 @@ async def loop(shocker, touchpoint_shocker):
     await asyncio.sleep(0.1)
 
     if shocker.fire:
-        send_shock("menu")
+        send_shock(shocker)
         sleeptime = shocker.duration + shocker.config.sleeptime_offset
         print(f"Waiting {sleeptime} before next command\n")
         await asyncio.sleep(sleeptime)
 
     if touchpoint_shocker.fire:
-        send_shock("touchpoint")
+        send_shock(touchpoint_shocker)
         sleeptime = touchpoint_shocker.duration + touchpoint_shocker.config.sleeptime_offset
         print(f"Waiting {sleeptime} before next command\n")
         await asyncio.sleep(sleeptime)
@@ -187,7 +183,7 @@ async def init_main():
     print(f"Default Values:         Target: {shocker.target} | Type: {shocker.type} | Intensity: {shocker.intensity} | Duration: {shocker.duration}\n")
 
     while True:
-        await loop()
+        await loop(shocker, touchpoint_shocker)
 
     transport.close()
 
