@@ -77,7 +77,7 @@ class PishockConfig:
         error_message = f"ERROR: {value_name} was misconfigured (needs to be {type}). Using default value of {default}. "
         if min_value != None and max_value != None:
             error_message += f"The value has to be between {min_value} and {max_value}."
-        print(error_message)
+        #print(error_message)
 
     def print_values(self):
         print(f"apikey:             {self.apikey}")
@@ -96,53 +96,59 @@ class PishockConfig:
 
 class PiShocker:
     def __init__(self, config = "pishock.cfg", default_type = 1, default_intensity = 5, default_duration = 1):
+        global print
+        self.current_output = "__NONE__"
         try:
             self.config = PishockConfig(config)
             self.target = self.config.sharecodes[0]
         except:
-            print("ERROR: Config not found. Please create 'pishock.cfg' in the root folder of the project.")
+            self.output_to_log("ERROR: Config not found. Please create 'pishock.cfg' in the root folder of the project.")
         self.type = default_type
         self.intensity = default_intensity
         self.duration = default_duration
         self.fire = False
+
+    def output_to_log(self, text):
+        if self.current_output == "__NONE__": self.current_output = ""
+        self.current_output += "\n" + text
     
     def set_target(self, address, *args):
         self.target = self.config.sharecodes[args[0]]
-        if self.config.verbose: print(f"  OSC: Target set to {self.target}")
+        if self.config.verbose: self.output_to_log(f"  OSC: Target set to {self.target}")
 
     def set_type(self, adress, *args):
         self.type = int(args[0])
-        if self.config.verbose: print(f"  OSC: Type set to {self.type}")
+        #if self.config.verbose: self.output_to_log(f"  OSC: Type set to {self.type}")
 
     def set_intensity(self, address, *args):
         self.intensity = int(args[0] * 100)
-        if self.config.verbose: print(f"  OSC: Intensity set to {self.intensity}")
+        #if self.config.verbose: self.output_to_log(f"  OSC: Intensity set to {self.intensity}")
 
     def set_duration(self, address, *args):
         self.duration = int(args[0] * 15)
-        if self.config.verbose: print(f"  OSC: Duration set to {self.duration}")
+        #if self.config.verbose: self.output_to_log(f"  OSC: Duration set to {self.duration}")
 
     def set_fire(self, address:str, *args) -> None:
         self.fire = args[0]
-        if self.config.verbose and self.fire: print(f"  OSC: Triggered send to {self.target}")
+        if self.config.verbose and self.fire: self.output_to_log(f"  OSC: Triggered send to {self.target}")
 
 
 def send_shock(current_shocker):
     if current_shocker.config.no_shocks and current_shocker.type == 0:
-        print(SHOCKS_DISABLED_WARNING)
+        current_shocker.output_to_log(SHOCKS_DISABLED_WARNING)
         current_shocker.type = 2
 
     if current_shocker.config.limit_shocks_only and current_shocker.type != 0:
         pass #dont check maximums for vibrate and beep if set in config
     else:
         if current_shocker.intensity > current_shocker.config.max_intensity:
-            print(INTENSITY_TOO_HIGH_WARNING)
+            current_shocker.output_to_log(INTENSITY_TOO_HIGH_WARNING)
             current_shocker.intensity = current_shocker.config.max_intensity
         if current_shocker.duration > current_shocker.config.max_duration:
-            print(DURATION_TOO_HIGH_WARNING)
+            current_shocker.output_to_log(DURATION_TOO_HIGH_WARNING)
             current_shocker.duration = current_shocker.config.max_duration
 
-    print(f"Sending {TYPELIST_STR[current_shocker.type]} at {current_shocker.intensity} for {current_shocker.duration} seconds to target {current_shocker.target}")
+    current_shocker.output_to_log(f"Sending {TYPELIST_STR[current_shocker.type]} at {current_shocker.intensity} for {current_shocker.duration} seconds to target {current_shocker.target}")
     datajson = str({"Username":current_shocker.config.username,
                         "Name":current_shocker.config.name,
                         "Code":current_shocker.target,
@@ -153,7 +159,7 @@ def send_shock(current_shocker):
     headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
     sendrequest = requests.post('https://do.pishock.com/api/apioperate', data=datajson, headers=headers)
 
-    print(f"{sendrequest} {sendrequest.text}")
+    current_shocker.output_to_log(f"{sendrequest} {sendrequest.text}")
     current_shocker.fire = False
 
 
@@ -163,15 +169,16 @@ async def loop(shocker, touchpoint_shocker):
     if shocker.fire:
         send_shock(shocker)
         sleeptime = shocker.duration + shocker.config.sleeptime_offset
-        print(f"Waiting {sleeptime} before next command\n")
+        shocker.output_to_log(f"Waiting {sleeptime} before next command\n")
         await asyncio.sleep(sleeptime)
 
     if touchpoint_shocker.fire:
         send_shock(touchpoint_shocker)
         sleeptime = touchpoint_shocker.duration + touchpoint_shocker.config.sleeptime_offset
-        print(f"Waiting {sleeptime} before next command\n")
+        touchpoint_shocker.output_to_log(f"Waiting {sleeptime} before next command\n")
         await asyncio.sleep(sleeptime)
 
+#---not used anymore---
 
 async def init_main():
     server = AsyncIOOSCUDPServer((shocker.config.ip, shocker.config.port), dispatcher, asyncio.get_event_loop())

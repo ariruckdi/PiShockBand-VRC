@@ -1,2 +1,3 @@
 @echo off
-python\python.exe script\pishockgui.py
+start python\pythonw.exe script\pishockgui.py
+exit

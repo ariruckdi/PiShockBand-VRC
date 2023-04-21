@@ -11,6 +11,7 @@ CONFIG_DEFAULTS = [["API", "APPNAME", "VRC-OSC"],
 
 CONFIG_FILE = os.path.expandvars(r'%APPDATA%\PiShock-OSC\pishock.cfg')
 
+
 #---CONFIG SETUP AND SETTINGS---
 #TODO Check inputs somehow
 def write_config_value(category, key, value):
@@ -70,14 +71,14 @@ def config_setup():
     
     while True:
         config_event, config_values = config_window.read()
-        print(config_event, config_values)
-        print(config_values.keys())
+        #print(config_event, config_values)
+        #print(config_values.keys())
         if config_event == gui.WIN_CLOSED or config_event == 'Exit':
             break
         if config_event == "SAFE_CONFIG":
             for config_key in config_values.keys():
                 config_adress_list = config_key.split("/")
-                print((config_adress_list[0], config_adress_list[1], str(config_values[config_key])))
+                #print((config_adress_list[0], config_adress_list[1], str(config_values[config_key])))
                 write_config_value(config_adress_list[0], config_adress_list[1], str(config_values[config_key]))
             for additional_value in CONFIG_DEFAULTS:
                 write_config_value(*additional_value)
@@ -87,7 +88,7 @@ def config_setup():
 def config_modify():
     #TODO dont repeat yourself
     global shocker, touchpoint_shocker, dispatcher, window
-    global config_window, config_handler
+    global config_window, config_handler, config_event
 
     if not 'config_writer' in globals(): config_handler = pishock.ConfigParser()
     config_handler.read(CONFIG_FILE)
@@ -124,7 +125,7 @@ def config_modify():
         [gui.InputText(key="SAFETY/MAX_DURATION", default_text=config_handler["SAFETY"]["MAX_DURATION"], size=(row_lenght, row_height))],
         [gui.InputText(key="SAFETY/SLEEPTIME_OFFSET", default_text=config_handler["SAFETY"]["SLEEPTIME_OFFSET"], size=(row_lenght, row_height))],
         [gui.Checkbox("", key="SAFETY/DISABLE_SHOCKS", default=config_handler["SAFETY"]["DISABLE_SHOCKS"].lower == 'true', size=(row_lenght, row_height))],
-        [gui.Button("Save config", key="SAFE_CONFIG", size=(row_lenght, row_height))]
+        [gui.Button("Save config", key="SAFE_CONFIG_MODIFY", size=(row_lenght, row_height))]
     ]
 
     config_layout = [
@@ -135,50 +136,87 @@ def config_modify():
 
     while True:
         config_event, config_values = config_window.read()
-        print(config_event, config_values)
-        print(config_values.keys())
+        #print(config_event, config_values)
+        #print(config_values.keys())
         if config_event == gui.WIN_CLOSED or config_event == 'Exit':
             break
-        if config_event == "SAFE_CONFIG":
+        if config_event == "SAFE_CONFIG_MODIFY":
             for config_key in config_values.keys():
                 config_adress_list = config_key.split("/")
-                print((config_adress_list[0], config_adress_list[1], str(config_values[config_key])))
+                #print((config_adress_list[0], config_adress_list[1], str(config_values[config_key])))
                 write_config_value(config_adress_list[0], config_adress_list[1], str(config_values[config_key]))
             for additional_value in CONFIG_DEFAULTS:
                 write_config_value(*additional_value)
             config_window.close()
+            
             break
+
+def print_config_values(shocker):
+        print(f"API-Key:            {shocker.config.apikey}")
+        print(f"Username:           {shocker.config.username}")
+        print(f"Program Name:       {shocker.config.name}")
+        print(f"Sharecode:          {shocker.config.sharecodes}")
+        print(f"IP:                 {shocker.config.ip}")
+        print(f"Port:               {shocker.config.port}")
+        print(f"Verbose:            {shocker.config.verbose}")
+        print(f"Max Intensity:      {shocker.config.max_intensity}")
+        print(f"Max Duration:       {shocker.config.max_duration}")
+        print(f"Sleeptime Offset:   {shocker.config.sleeptime_offset}")
+        print(f"Limit Shocks Only:  {shocker.config.limit_shocks_only}")
+        print(f"No Shocks:          {shocker.config.no_shocks}")
+        print()
 
 
 #---STARTUP---
 def init_window():
-    global window
+    global window, print
     #set up GUI
     layout = [
         [gui.Text("PiShockOSC stopped", key="IP_PORT_DISPLAY")],
         [gui.Text(" ", key="CURRENT_VALUES")],
-        [gui.Button("Settings", key="SETTINGS"), gui.Button("Exit")]
+        [gui.Button("Settings", key="SETTINGS"), gui.Button("Exit")],
+        [gui.Multiline('', size=(70,20), key="GUI_LOG", font=("Consolas", 10))]
     ]
     window = gui.Window("PiShock-OSC", layout)
+    window.read(timeout=500)
+    print = lambda *args, **kwargs: window["GUI_LOG"].print(*args, **kwargs)
     pishock.asyncio.run(init_main())
 
 
 async def init_main():
-    global transport, shocker, touchpoint_shocker
-    server = pishock.AsyncIOOSCUDPServer((shocker.config.ip, shocker.config.port), dispatcher, pishock.asyncio.get_event_loop())
-    transport, protocol = await server.create_serve_endpoint()
+    global transport, shocker, touchpoint_shocker, config_event
+    config_event = ""
+    try:
+        server = pishock.AsyncIOOSCUDPServer((shocker.config.ip, shocker.config.port), dispatcher, pishock.asyncio.get_event_loop())
+        transport, protocol = await server.create_serve_endpoint()
+    except:
+        gui.popup_ok("Error while starting the OSC server!\n\nPlease check if any other programs are listening on the selected port.\nPorts can be only used once, you might need to use an OSC router.", title="OSC Server Error")
+        window.Close()
+        return
+    
 
     print(f"PiShock-OSC started, listening at IP: {shocker.config.ip} | Port: {shocker.config.port}")
     print(f"Safety Settings:        Max Intensity: {shocker.config.max_intensity}  | Max Duration: {shocker.config.max_duration} |  Minimum Pause: {shocker.config.sleeptime_offset}\n")
     print(f"Loading default values, change values in the expression menu once to sync them to VRChat")
     print(f"Default Values:         Target: {shocker.target} | Type: {shocker.type} | Intensity: {shocker.intensity} | Duration: {shocker.duration}\n")
+    if shocker.config.verbose: print_config_values(shocker)
 
     while True:
         gui_loop()
         await pishock.loop(shocker, touchpoint_shocker)
+        if shocker.current_output != "__NONE__":
+            print(shocker.current_output)
+            shocker.current_output = "__NONE__"
+        if touchpoint_shocker.current_output != "__NONE__":
+            print(touchpoint_shocker.current_output)
+            touchpoint_shocker.current_output = "__NONE__"
         if event == gui.WIN_CLOSED or event == 'Exit':
             break
-
+        if config_event == "SAFE_CONFIG_MODIFY":
+            shocker = pishock.PiShocker(CONFIG_FILE, 1, 10, 1)
+            touchpoint_shocker = pishock.PiShocker(CONFIG_FILE, 1, 10, 1)
+            config_event = ""
+            if shocker.config.verbose: print(""); print_config_values(shocker)
     transport.close()
     window.close()
 
@@ -187,7 +225,7 @@ async def init_main():
 def gui_loop():
     global event, values
     event, values = window.read(timeout=100, timeout_key="UPDATE_VALUES")   # Read the event that happened and the values dictionary
-    if event != 'UPDATE_VALUES': print(event, values)
+    #if event != 'UPDATE_VALUES': print(event, values)
     if event == gui.WIN_CLOSED or event == 'Exit':
         transport.close()
         window.close()
@@ -209,11 +247,6 @@ def main():
 
     shocker = pishock.PiShocker(CONFIG_FILE, 1, 10, 1)
     touchpoint_shocker = pishock.PiShocker(CONFIG_FILE, 1, 10, 1)
-
-    if shocker.config.verbose:
-        print(shocker.config.config)
-        shocker.config.print_values()
-        print()
 
     #pythonosc dispatcher
     dispatcher = pishock.Dispatcher()
