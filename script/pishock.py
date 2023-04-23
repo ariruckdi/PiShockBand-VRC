@@ -114,7 +114,7 @@ class PiShocker:
     
     def set_target(self, address, *args):
         self.target = self.config.sharecodes[args[0]]
-        if self.config.verbose: self.output_to_log(f"  OSC: Target set to {self.target}")
+        if self.config.verbose: self.output_to_log(f"OSC: Target set to {self.target}")
 
     def set_type(self, adress, *args):
         self.type = int(args[0])
@@ -130,7 +130,7 @@ class PiShocker:
 
     def set_fire(self, address:str, *args) -> None:
         self.fire = args[0]
-        if self.config.verbose and self.fire: self.output_to_log(f"  OSC: Triggered send to {self.target}")
+        if self.config.verbose and self.fire: self.output_to_log(f"OSC: Triggered send to {self.target}")
 
 
 def send_shock(current_shocker):

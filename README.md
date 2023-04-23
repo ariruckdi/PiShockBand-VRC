@@ -13,9 +13,7 @@ Control PiShock via your avatar expressions menu or touch points on your avatar.
 - External config file, pishock.cfg
 
 # To do
-- pishock.cfg detection and first run setup guide
-- GUI
-- installer
+- Validate config on save
 
 # Assets used
 - Smart watch made by [vibhavsuthar1998](https://www.cgtrader.com/vibhavsuthar1998) rebuilt by [noideaman](https://github.com/noideaman) from [here](https://www.cgtrader.com/free-3d-models/industrial/other/smart-watch-1c785218-a560-4d7e-8478-f9de27312be8), modified by me to be low poly
