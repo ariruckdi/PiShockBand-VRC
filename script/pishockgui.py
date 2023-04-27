@@ -193,7 +193,6 @@ async def init_main():
         gui.popup_ok("Error while starting the OSC server!\n\nPlease check if any other programs are listening on the selected port.\nPorts can be only used once, you might need to use an OSC router.", title="OSC Server Error")
         window.Close()
         return
-    
 
     print(f"PiShock-OSC started, listening at IP: {shocker.config.ip} | Port: {shocker.config.port}")
     print(f"Safety Settings:        Max Intensity: {shocker.config.max_intensity}  | Max Duration: {shocker.config.max_duration} |  Minimum Pause: {shocker.config.sleeptime_offset}\n")
@@ -216,6 +215,7 @@ async def init_main():
             shocker = pishock.PiShocker(CONFIG_FILE, 1, 10, 1)
             touchpoint_shocker = pishock.PiShocker(CONFIG_FILE, 1, 10, 1)
             config_event = ""
+            start_dispatch()
             if shocker.config.verbose: print(""); print_config_values(shocker)
     transport.close()
     window.close()
@@ -235,22 +235,9 @@ def gui_loop():
     if event == "SETTINGS":
         config_modify()
 
-
-#---MAIN---
-def main():
-    global shocker, touchpoint_shocker, dispatcher, window
-
-    if not os.path.isfile(CONFIG_FILE):
-        new_config_file = open(CONFIG_FILE, "x")
-        new_config_file.close()
-        config_setup()
-
-    shocker = pishock.PiShocker(CONFIG_FILE, 1, 10, 1)
-    touchpoint_shocker = pishock.PiShocker(CONFIG_FILE, 1, 10, 1)
-
-    #pythonosc dispatcher
-    dispatcher = pishock.Dispatcher()
-
+def start_dispatch():
+    global dispatcher, touchpoint_shocker, shocker
+    
     #dispatchers for menu functions
     dispatcher.map("/avatar/parameters/pishock/Type", shocker.set_type)
     dispatcher.map("/avatar/parameters/pishock/Intensity", shocker.set_intensity)
@@ -264,6 +251,20 @@ def main():
     dispatcher.map("/avatar/parameters/pishock/TPDuration", touchpoint_shocker.set_duration)
     dispatcher.map("/avatar/parameters/pishock/Touchpoint_*", touchpoint_shocker.set_fire)
 
+#---MAIN---
+def main():
+    global shocker, touchpoint_shocker, dispatcher, window
+
+    if not os.path.isfile(CONFIG_FILE):
+        new_config_file = open(CONFIG_FILE, "x")
+        new_config_file.close()
+        config_setup()
+
+    shocker = pishock.PiShocker(CONFIG_FILE, 1, 10, 1)
+    touchpoint_shocker = pishock.PiShocker(CONFIG_FILE, 1, 10, 1)
+
+    dispatcher = pishock.Dispatcher()
+    start_dispatch()
     init_window()
 
 if __name__ == "__main__":
